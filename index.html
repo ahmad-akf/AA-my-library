@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library AI +</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Tajawal', 'sans-serif'] },
+                    colors: { primary: { 50: '#f0fdfa', 500: '#14b8a6', 600: '#0d9488', 900: '#134e4a' } }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Tajawal', sans-serif; overflow-x: hidden; }
+
+        /* Glassmorphism */
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); }
+        .dark .glass { background: rgba(17, 24, 39, 0.8); }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+        }
+        .dark .glass-card {
+            background: rgba(31, 41, 55, 0.5); border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: linear-gradient(135deg, #14b8a6, #0d9488); color: white;
+            padding: 0.6rem 1.4rem; border-radius: 0.75rem; transition: all 0.3s; font-weight: bold;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 20px -5px rgba(20, 184, 166, 0.4); }
+
+        .btn-secondary {
+            background-color: #f3f4f6; color: #374151; padding: 0.6rem 1.4rem;
+            border-radius: 0.75rem; transition: background-color 0.2s; font-weight: 500;
+        }
+        .dark .btn-secondary { background-color: #374151; color: #e5e7eb; }
+        .btn-secondary:hover { background-color: #e5e7eb; }
+        .dark .btn-secondary:hover { background-color: #4b5563; }
+
+        /* Inputs & Selects */
+        .input-field, select.input-field, select#categoryFilter {
+            width: 100%; padding: 0.75rem; border-radius: 0.75rem; border: 1px solid #d1d5db;
+            background-color: #ffffff; color: #1f2937; transition: all 0.3s; outline: none;
+        }
+        .dark .input-field, .dark select.input-field, .dark select#categoryFilter {
+            background-color: #1f2937; border-color: #374151; color: #ffffff;
+        }
+        .input-field:focus { border-color: #14b8a6; box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2); }
+        option { background-color: #ffffff; color: #000000; }
+        .dark option { background-color: #1f2937; color: #ffffff; }
+        .label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.4rem; color: #4b5563; }
+        .dark .label { color: #d1d5db; }
+
+        /* Book Card */
+        .book-card { transition: all 0.4s ease; position: relative; overflow: hidden; }
+        .book-card:hover { transform: translateY(-8px) scale(1.02); z-index: 10; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+
+        /* Badges inside card */
+        .book-info-badge {
+            background-color: rgba(17, 24, 39, 0.8); backdrop-filter: blur(4px);
+            color: #f3f4f6; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem;
+            font-weight: bold; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .book-info-badge.primary { background-color: rgba(13, 148, 136, 0.9); border-color: rgba(20, 184, 166, 0.5); }
+        .book-info-badge.warning { background-color: rgba(202, 138, 4, 0.9); border-color: rgba(234, 179, 8, 0.5); }
+
+        /* Tabs */
+        .tab-btn { padding-bottom: 0.5rem; padding-left: 0.5rem; padding-right: 0.5rem; color: #9ca3af; transition: all 0.3s; }
+        .tab-btn.active { border-bottom: 2px solid #14b8a6; color: #14b8a6; font-weight: bold; }
+        .dark .tab-btn.active { color: #2dd4bf; border-color: #2dd4bf; }
+
+        .badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: bold; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+
+        /* Animation */
+        .animated-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%; animation: gradient 15s ease infinite; opacity: 0.05; z-index: -1; pointer-events: none;
+        }
+        .dark .animated-bg { opacity: 0.02; }
+        @keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-500">
+
+    <div class="animated-bg"></div>
+
+    <header class="sticky top-0 z-40 w-full glass border-b border-gray-200/50 dark:border-gray-700/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-blue-600 flex items-center gap-2 cursor-pointer select-none">
+                        <span>✨</span> Library AI <span class="text-white bg-primary-500 rounded-lg px-2 text-lg shadow-lg shadow-primary-500/50">+</span>
+                    </h1>
+                    
+                    <div class="flex items-center gap-3">
+                        <div id="authSection" class="flex items-center gap-2">
+                            <button id="googleLoginBtn" class="bg-white dark:bg-gray-800 text-gray-700 dark:text-white border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 px-4 py-2 rounded-xl flex items-center gap-2 font-bold text-sm shadow-sm transition-all">
+                                <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-5 h-5">
+                                دخول بجوجل
+                            </button>
+                            
+                            <div id="userProfile" class="hidden flex items-center gap-2 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full border border-gray-200 dark:border-gray-700">
+                                <img id="userAvatar" src="" class="w-8 h-8 rounded-full border border-primary-500">
+                                <span id="userName" class="text-xs font-bold hidden sm:block truncate max-w-[100px]"></span>
+                                <button id="logoutBtn" class="text-red-500 hover:text-red-700 px-2 font-bold text-xs" title="تسجيل خروج">⏻</button>
+                            </div>
+                        </div>
+
+                        <button onclick="openAddModal()" class="btn-primary flex items-center gap-2 shadow-lg shadow-primary-500/30">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                            <span class="hidden sm:inline">أضف كتاب</span>
+                        </button>
+                        <button id="themeToggleBtn" class="btn-secondary p-2.5 shadow-sm text-xl">🌗</button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col md:flex-row gap-3 bg-white/50 dark:bg-gray-800/50 p-2 rounded-2xl backdrop-blur-sm border border-gray-200 dark:border-gray-700">
+                    <div class="relative flex-grow">
+                        <input type="text" id="searchInput" placeholder="بحث في Library AI + ..." class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-transparent focus:outline-none text-gray-800 dark:text-white placeholder-gray-500">
+                        <span class="absolute right-3 top-2.5 text-gray-400">🔍</span>
+                    </div>
+                    <select id="categoryFilter" class="py-2.5 px-4 rounded-xl bg-transparent border-none focus:ring-2 focus:ring-primary-500 cursor-pointer text-gray-800 dark:text-white">
+                        <option value="all">كل التصنيفات</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full space-y-8">
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in-up">
+            <div class="md:col-span-2 grid grid-cols-2 gap-4">
+                <div class="glass-card p-5 rounded-2xl text-center border-b-4 border-blue-500 hover:scale-[1.02] transition-transform">
+                    <span class="text-3xl font-bold block text-blue-600 dark:text-blue-400" id="statTotalBooks">0</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold">إجمالي الكتب</span>
+                </div>
+                <div class="glass-card p-5 rounded-2xl text-center border-b-4 border-green-500 hover:scale-[1.02] transition-transform">
+                    <span class="text-3xl font-bold block text-green-600 dark:text-green-400" id="statPagesRead">0</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold">صفحات مقروءة</span>
+                </div>
+                <div class="glass-card p-5 rounded-2xl col-span-2 flex items-center justify-between border-b-4 border-purple-500 relative overflow-hidden group">
+                    <div class="z-10">
+                        <h3 class="font-bold text-lg text-gray-800 dark:text-white">جلسة القراءة (Focus)</h3>
+                        <p id="timerDisplay" class="text-4xl font-mono font-bold text-primary-600 dark:text-primary-400 mt-1">00:00:00</p>
+                    </div>
+                    <div class="z-10 flex gap-3">
+                        <button id="startTimerBtn" class="p-3 rounded-full bg-green-500 text-white hover:bg-green-600 shadow-lg">▶</button>
+                        <button id="stopTimerBtn" class="p-3 rounded-full bg-red-500 text-white hover:bg-red-600 shadow-lg" disabled>⏹</button>
+                    </div>
+                    <div class="absolute left-4 top-1/2 -translate-y-1/2 opacity-5 text-9xl">⏱</div>
+                </div>
+            </div>
+            
+            <div class="glass-card p-4 rounded-2xl flex flex-col items-center justify-center h-64 md:h-auto">
+                <h4 class="text-sm font-bold mb-3 text-gray-500 dark:text-gray-400">توزيع التصنيفات</h4>
+                <div class="w-full h-full relative flex items-center justify-center">
+                    <canvas id="booksChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div id="bookGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 pb-10"></div>
+        
+        <div id="noBooksIndicator" class="text-center py-20 hidden">
+            <div class="text-6xl mb-4">📂</div>
+            <p class="text-xl text-gray-500 dark:text-gray-400">المكتبة فارغة. أضف كتاباً جديداً واستمتع بتجربة الذكاء الاصطناعي.</p>
+        </div>
+        
+        <div id="loadingOverlay" class="fixed inset-0 bg-black/50 z-[70] hidden flex items-center justify-center flex-col backdrop-blur-sm">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary-500"></div>
+            <p class="text-white mt-4 font-bold">جاري الاتصال بالسحابة...</p>
+        </div>
+    </main>
+
+    <div id="bookModal" class="modal hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeModal('bookModal')"></div>
+        <div class="modal-content bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col relative transform transition-all scale-100">
+            <div class="p-6 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800">
+                <h3 id="bookModalTitle" class="text-2xl font-bold text-primary-600 dark:text-primary-400">كتاب جديد</h3>
+                <button onclick="closeModal('bookModal')" class="text-gray-400 hover:text-red-500 text-2xl">×</button>
+            </div>
+            <form id="bookForm" class="flex-1 overflow-y-auto p-6 space-y-5 scrollbar-hide">
+                <input type="hidden" id="bookId">
+                <div class="bg-blue-50 dark:bg-blue-900/20 p-5 rounded-2xl border border-blue-100 dark:border-blue-800">
+                    <label class="block text-sm font-bold text-blue-600 dark:text-blue-400 mb-2 flex items-center gap-2">✨ بحث Library AI +</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="bookTitle" class="flex-1 p-3 rounded-xl border dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-400 outline-none" placeholder="اسم الكتاب..." required>
+                        <button type="button" id="aiFetchBtn" class="bg-blue-600 text-white px-5 py-2 rounded-xl hover:bg-blue-700 shadow-lg font-bold">⚡ جلب ذكي</button>
+                    </div>
+                    <p class="text-xs text-blue-500/80 mt-2">سيتم جلب الغلاف، الملخص، والتفاصيل تلقائياً.</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="label">المؤلف</label><input type="text" id="bookAuthor" class="input-field" required></div>
+                    <div><label class="label">التاريخ</label><input type="text" id="bookDate" class="input-field"></div>
+                </div>
+                <div><label class="label">صورة الغلاف</label><input type="url" id="bookCover" class="input-field ltr"></div>
+                <div>
+                    <label class="label">التصنيف</label>
+                    <div class="flex gap-2">
+                        <select id="bookCategory" class="input-field flex-1 cursor-pointer"></select>
+                        <button type="button" onclick="addCategoryPrompt()" class="bg-gray-200 dark:bg-gray-700 px-4 rounded-xl font-bold">+</button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="label">الصفحات</label><input type="number" id="bookTotalPages" class="input-field" min="0"></div>
+                    <div><label class="label">التقييم</label><input type="range" id="bookRating" min="0" max="5" step="0.5" class="w-full mt-2"><div class="text-center text-yellow-500 font-bold" id="ratingDisplay">0 ★</div></div>
+                </div>
+                <div><label class="label">ملخص</label><textarea id="bookSummary" rows="3" class="input-field resize-none"></textarea></div>
+                <div class="flex justify-end gap-3 pt-4 border-t dark:border-gray-800">
+                    <button type="button" onclick="closeModal('bookModal')" class="btn-secondary">إلغاء</button>
+                    <button type="submit" class="btn-primary px-8">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="viewModal" class="modal hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="closeModal('viewModal')"></div>
+        <div class="modal-content bg-white dark:bg-gray-900 rounded-3xl w-full max-w-4xl max-h-[95vh] overflow-hidden flex flex-col md:flex-row relative shadow-2xl border border-gray-700">
+            <div class="w-full md:w-1/3 bg-gray-50 dark:bg-gray-800 p-6 flex flex-col items-center text-center border-l dark:border-gray-700 overflow-y-auto no-scrollbar">
+                <img id="viewCover" src="" class="w-48 rounded-xl shadow-2xl mb-4 object-cover">
+                <h2 id="viewTitle" class="text-2xl font-bold text-primary-600 dark:text-primary-400 mb-1"></h2>
+                <p id="viewAuthor" class="text-gray-500 dark:text-gray-400 font-medium mb-4"></p>
+                <div class="flex flex-wrap justify-center gap-2 mb-6">
+                    <span id="viewCategoryBadge" class="badge bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"></span>
+                    <span id="viewPagesBadge" class="badge bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200"></span>
+                    <span id="viewRatingBadge" class="badge bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200"></span>
+                </div>
+                <div class="flex gap-2 w-full mt-auto">
+                    <button id="editBtn" class="btn-secondary flex-1 text-xs py-3">✏️ تعديل</button>
+                    <button id="deleteBtn" class="bg-red-100 text-red-600 hover:bg-red-200 py-3 rounded-xl flex-1 text-xs font-bold transition">🗑️ حذف</button>
+                </div>
+            </div>
+            <div class="w-full md:w-2/3 p-6 flex flex-col bg-white dark:bg-gray-900 overflow-hidden">
+                <div class="flex border-b dark:border-gray-700 mb-4 gap-4">
+                    <button onclick="switchTab('summary')" id="tabSummary" class="tab-btn active">📖 الملخص</button>
+                    <button onclick="switchTab('notes')" id="tabNotes" class="tab-btn">📝 ملاحظاتي</button>
+                </div>
+                <div id="contentSummary" class="flex-1 overflow-y-auto scrollbar-hide"><p id="viewDesc" class="text-lg text-gray-700 dark:text-gray-300 whitespace-pre-wrap"></p></div>
+                <div id="contentNotes" class="hidden flex-1 flex flex-col h-full">
+                    <div id="notesList" class="flex-1 overflow-y-auto space-y-3 p-1 scrollbar-hide mb-3"></div>
+                    <form id="noteForm" class="flex gap-2 mt-auto pt-2 border-t dark:border-gray-700">
+                        <input type="text" id="newNoteInput" class="flex-1 p-3 rounded-xl bg-gray-100 dark:bg-gray-800 dark:text-white outline-none" placeholder="أضف ملاحظة جديدة..." required>
+                        <button type="submit" class="bg-primary-600 text-white p-3 rounded-xl hover:bg-primary-700 shadow-lg">➤</button>
+                    </form>
+                </div>
+            </div>
+            <button onclick="closeModal('viewModal')" class="absolute top-4 left-4 bg-white/20 backdrop-blur-md p-2 rounded-full hover:bg-white/40 text-gray-800 dark:text-white shadow-lg">✕</button>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 dark:bg-white text-white dark:text-gray-900 px-8 py-3 rounded-full shadow-2xl translate-y-20 opacity-0 transition-all duration-500 z-[60] flex items-center gap-3 font-bold">
+        <span id="toastIcon"></span><span id="toastMsg"></span>
+    </div>
+
+    <script type="module">
+        // ==================== إعدادات ومكتبات Firebase ====================
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-analytics.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc, query, orderBy, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+
+        // تكوين Firebase لمشروع "Library AI Pro"
+        const firebaseConfig = {
+            apiKey: "AIzaSyAQWqA_BefvN6xvlVhcrvGQ5KOkaneADAw",
+            authDomain: "library-ai-pro.firebaseapp.com",
+            projectId: "library-ai-pro",
+            storageBucket: "library-ai-pro.firebasestorage.app",
+            messagingSenderId: "198863940676",
+            appId: "1:198863940676:web:378b91b798de3592fea011",
+            measurementId: "G-99P5DJQDHK"
+        };
+
+        // تهيئة التطبيق
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        // ==================== متغيرات الحالة ====================
+        let books = [];
+        let categories = ['روايات', 'تطوير ذات', 'ديني', 'تقنية', 'أدب'];
+        let currentUser = null;
+        let unsubscribeBooks = null;
+        let chartInstance = null;
+        let currentBookId = null;
+        let readingSession = { startTime: null, interval: null };
+
+        // ==================== عند تحميل الصفحة ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTheme();
+            setupEventListeners();
+            
+            onAuthStateChanged(auth, (user) => {
+                currentUser = user;
+                updateAuthUI();
+                if (user) {
+                    showLoading(true);
+                    syncWithCloud(user.uid);
+                } else {
+                    if (unsubscribeBooks) unsubscribeBooks();
+                    loadLocalData();
+                    showLoading(false);
+                }
+            });
+        });
+
+        // ==================== إدارة البيانات ====================
+
+        function syncWithCloud(userId) {
+            const booksRef = collection(db, `users/${userId}/books`);
+            const q = query(booksRef, orderBy('createdAt', 'desc'));
+
+            unsubscribeBooks = onSnapshot(q, (snapshot) => {
+                books = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                getDoc(doc(db, `users/${userId}`, 'settings')).then(docSnap => {
+                    if (docSnap.exists() && docSnap.data().categories) {
+                        categories = docSnap.data().categories;
+                    }
+                    renderAll();
+                    showLoading(false);
+                    showToast('☁️ تمت المزامنة بنجاح', 'success');
+                });
+            }, (error) => {
+                console.error("Error syncing:", error);
+                showLoading(false);
+                showToast('خطأ في الاتصال بالسحابة', 'error');
+            });
+        }
+
+        function loadLocalData() {
+            books = JSON.parse(localStorage.getItem('myBooks')) || [];
+            categories = JSON.parse(localStorage.getItem('myCategories')) || ['روايات', 'تطوير ذات', 'ديني', 'تقنية'];
+            renderAll();
+        }
+
+        async function saveBookData(bookData, isNew = true, bookId = null) {
+            if (currentUser) {
+                try {
+                    if (isNew) {
+                        await addDoc(collection(db, `users/${currentUser.uid}/books`), { ...bookData, createdAt: Date.now() });
+                    } else {
+                        await updateDoc(doc(db, `users/${currentUser.uid}/books`, bookId), bookData);
+                    }
+                    showToast('تم الحفظ في السحابة ✅', 'success');
+                } catch (e) {
+                    console.error(e);
+                    showToast('خطأ في الحفظ', 'error');
+                }
+            } else {
+                if (isNew) {
+                    books.push({ id: Date.now().toString(), ...bookData, createdAt: Date.now() });
+                } else {
+                    const idx = books.findIndex(b => b.id === bookId);
+                    if (idx > -1) books[idx] = { ...books[idx], ...bookData };
+                }
+                localStorage.setItem('myBooks', JSON.stringify(books));
+                renderAll();
+                showToast('تم الحفظ محلياً', 'success');
+            }
+        }
+
+        async function deleteBookData(bookId) {
+            if (currentUser) {
+                await deleteDoc(doc(db, `users/${currentUser.uid}/books`, bookId));
+                showToast('تم الحذف من السحابة 🗑️', 'success');
+            } else {
+                books = books.filter(b => b.id !== bookId);
+                localStorage.setItem('myBooks', JSON.stringify(books));
+                renderAll();
+                showToast('تم الحذف محلياً', 'success');
+            }
+        }
+
+        async function saveCategories() {
+            if (currentUser) {
+                await setDoc(doc(db, `users/${currentUser.uid}`, 'settings'), { categories }, { merge: true });
+            } else {
+                localStorage.setItem('myCategories', JSON.stringify(categories));
+            }
+            renderCategories();
+        }
+
+        // ==================== العرض ====================
+
+        function renderAll() { renderCategories(); renderBooks(); updateStats(); }
+
+        function renderBooks() {
+            const grid = document.getElementById('bookGrid');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const filter = document.getElementById('categoryFilter').value;
+            grid.innerHTML = '';
+            
+            const filtered = books.filter(b => 
+                (b.title.toLowerCase().includes(search) || b.author.toLowerCase().includes(search)) &&
+                (filter === 'all' || b.category === filter)
+            );
+
+            if (filtered.length === 0) { document.getElementById('noBooksIndicator').classList.remove('hidden'); return; }
+            document.getElementById('noBooksIndicator').classList.add('hidden');
+
+            filtered.forEach((book, index) => {
+                const card = document.createElement('div');
+                card.className = 'book-card bg-white dark:bg-gray-800 rounded-2xl shadow-lg cursor-pointer h-80 group relative overflow-hidden border border-gray-100 dark:border-gray-700';
+                card.style.animation = `fadeInUp 0.5s ease forwards ${index * 0.1}s`;
+                
+                const coverImg = book.cover || `https://placehold.co/400x600/14b8a6/ffffff?text=${book.title.substring(0,2)}`;
+                
+                card.innerHTML = `
+                    <img src="${coverImg}" class="w-full h-full object-cover transition duration-700 group-hover:scale-110" onerror="this.src='https://placehold.co/400x600?text=No+Cover'">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-90"></div>
+                    <div class="absolute bottom-0 left-0 right-0 p-4 text-white z-10">
+                        <h3 class="font-bold text-lg truncate mb-1 drop-shadow-md">${book.title}</h3>
+                        <p class="text-sm text-gray-300 truncate mb-3 drop-shadow-sm">${book.author}</p>
+                        <div class="flex flex-wrap gap-2 items-center text-xs">
+                            <span class="book-info-badge primary">🏷️ ${book.category}</span>
+                            <span class="book-info-badge">📄 ${book.totalPages || 0}</span>
+                            <span class="book-info-badge warning ml-auto">★ ${book.rating}</span>
+                        </div>
+                    </div>
+                `;
+                card.onclick = () => openViewModal(book.id);
+                grid.appendChild(card);
+            });
+        }
+
+        // ==================== المنطق ====================
+
+        function handleBookSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('bookId').value;
+            const bookData = {
+                title: document.getElementById('bookTitle').value,
+                author: document.getElementById('bookAuthor').value,
+                cover: document.getElementById('bookCover').value,
+                category: document.getElementById('bookCategory').value,
+                date: document.getElementById('bookDate').value,
+                totalPages: document.getElementById('bookTotalPages').value,
+                rating: document.getElementById('bookRating').value,
+                summary: document.getElementById('bookSummary').value,
+                notes: id ? (books.find(b => b.id === id)?.notes || []) : [] 
+            };
+            saveBookData(bookData, !id, id);
+            closeModal('bookModal');
+        }
+
+        async function fetchBookDataAI() {
+            const title = document.getElementById('bookTitle').value.trim();
+            const btn = document.getElementById('aiFetchBtn');
+            if (!title) return showToast('الرجاء كتابة اسم الكتاب', 'error');
+            const originalTxt = btn.innerText; btn.innerText = 'جاري البحث...'; btn.disabled = true;
+            try {
+                const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(title)}`);
+                const data = await res.json();
+                if (data.totalItems > 0) {
+                    const info = data.items[0].volumeInfo;
+                    document.getElementById('bookAuthor').value = info.authors?.[0] || 'غير معروف';
+                    document.getElementById('bookDate').value = info.publishedDate?.split('-')[0] || '';
+                    document.getElementById('bookTotalPages').value = info.pageCount || 0;
+                    document.getElementById('bookSummary').value = info.description || '';
+                    if (info.imageLinks?.thumbnail) document.getElementById('bookCover').value = info.imageLinks.thumbnail.replace('http://', 'https://');
+                    showToast('✨ تم جلب البيانات بذكاء', 'success');
+                } else { showToast('لم يتم العثور على الكتاب', 'error'); }
+            } catch (err) { showToast('خطأ في الاتصال', 'error'); }
+            finally { btn.innerText = originalTxt; btn.disabled = false; }
+        }
+
+        function handleAddNote(e) {
+            e.preventDefault();
+            const text = document.getElementById('newNoteInput').value.trim();
+            if (!text) return;
+            const book = books.find(b => b.id === currentBookId);
+            if (book) {
+                const updatedNotes = [...(book.notes || []), { text, date: new Date().toLocaleDateString('ar-EG') }];
+                saveBookData({ ...book, notes: updatedNotes }, false, book.id);
+                renderNotes(updatedNotes);
+                document.getElementById('newNoteInput').value = '';
+            }
+        }
+
+        function updateAuthUI() {
+            const loginBtn = document.getElementById('googleLoginBtn');
+            const profile = document.getElementById('userProfile');
+            if (currentUser) {
+                loginBtn.classList.add('hidden'); profile.classList.remove('hidden'); profile.classList.add('flex');
+                document.getElementById('userName').innerText = currentUser.displayName;
+                document.getElementById('userAvatar').src = currentUser.photoURL;
+            } else {
+                loginBtn.classList.remove('hidden'); profile.classList.add('hidden'); profile.classList.remove('flex');
+            }
+        }
+
+        // ==================== Helpers ====================
+        window.openAddModal = () => {
+            document.getElementById('bookForm').reset();
+            document.getElementById('bookId').value = '';
+            document.getElementById('ratingDisplay').innerText = '0 ★';
+            document.getElementById('bookModal').classList.remove('hidden');
+        };
+        window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
+        window.openViewModal = (id) => {
+            currentBookId = id; const book = books.find(b => b.id === id); if(!book) return;
+            document.getElementById('viewTitle').innerText = book.title;
+            document.getElementById('viewAuthor').innerText = book.author;
+            document.getElementById('viewCover').src = book.cover || 'https://placehold.co/400x600?text=No+Cover';
+            document.getElementById('viewDesc').innerText = book.summary || 'لا يوجد وصف';
+            document.getElementById('viewCategoryBadge').innerText = book.category;
+            document.getElementById('viewPagesBadge').innerText = `${book.totalPages || 0} صفحة`;
+            document.getElementById('viewRatingBadge').innerText = `${book.rating} ★`;
+            renderNotes(book.notes); switchTab('summary');
+            document.getElementById('viewModal').classList.remove('hidden');
+            document.getElementById('editBtn').onclick = () => { closeModal('viewModal'); window.openEditModal(book); };
+            document.getElementById('deleteBtn').onclick = () => { if(confirm('حذف الكتاب نهائياً؟')) { deleteBookData(id); closeModal('viewModal'); } };
+        };
+        window.openEditModal = (book) => {
+            window.openAddModal();
+            document.getElementById('bookId').value = book.id;
+            document.getElementById('bookTitle').value = book.title;
+            document.getElementById('bookAuthor').value = book.author;
+            document.getElementById('bookCover').value = book.cover;
+            document.getElementById('bookCategory').value = book.category;
+            document.getElementById('bookDate').value = book.date;
+            document.getElementById('bookTotalPages').value = book.totalPages;
+            document.getElementById('bookRating').value = book.rating;
+            document.getElementById('bookSummary').value = book.summary;
+            document.getElementById('ratingDisplay').innerText = `${book.rating} ★`;
+            document.getElementById('bookModalTitle').innerText = 'تعديل الكتاب';
+        };
+        window.addCategoryPrompt = () => {
+            const newCat = prompt('اسم التصنيف الجديد:');
+            if(newCat && !categories.includes(newCat)) { categories.push(newCat); saveCategories(); }
+        };
+        window.switchTab = (tab) => {
+            const notes = document.getElementById('contentNotes'); const summary = document.getElementById('contentSummary');
+            const btnNotes = document.getElementById('tabNotes'); const btnSummary = document.getElementById('tabSummary');
+            if(tab === 'notes') {
+                notes.classList.remove('hidden'); summary.classList.add('hidden');
+                btnNotes.classList.add('active'); btnSummary.classList.remove('active');
+            } else {
+                summary.classList.remove('hidden'); notes.classList.add('hidden');
+                btnSummary.classList.add('active'); btnNotes.classList.remove('active');
+            }
+        };
+        function renderCategories() {
+            const s = document.getElementById('bookCategory'); const f = document.getElementById('categoryFilter');
+            s.innerHTML = ''; f.innerHTML = '<option value="all">كل التصنيفات</option>';
+            categories.forEach(c => { s.appendChild(new Option(c, c)); f.appendChild(new Option(c, c)); });
+        }
+        function renderNotes(notes) {
+            const list = document.getElementById('notesList'); list.innerHTML = '';
+            if(!notes?.length) { list.innerHTML = '<p class="text-center text-gray-400 text-sm mt-4">لا توجد ملاحظات بعد.</p>'; return; }
+            notes.forEach(n => {
+                const div = document.createElement('div');
+                div.className = 'bg-gray-100 dark:bg-gray-800 p-3 rounded-xl border-r-4 border-primary-500 animate-fadeIn';
+                div.innerHTML = `<p class="text-sm dark:text-white">${n.text}</p><span class="text-xs text-gray-400">${n.date}</span>`;
+                list.appendChild(div);
+            });
+        }
+        function updateStats() {
+            document.getElementById('statTotalBooks').innerText = books.length;
+            const pages = books.reduce((a,b) => a + (parseInt(b.totalPages)||0), 0);
+            document.getElementById('statPagesRead').innerText = pages;
+            const counts = {}; books.forEach(b => counts[b.category] = (counts[b.category]||0)+1);
+            const ctx = document.getElementById('booksChart').getContext('2d');
+            if(chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(counts),
+                    datasets: [{ data: Object.values(counts), backgroundColor: ['#14b8a6', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'], borderWidth: 0 }]
+                }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
+        function showToast(msg, type) {
+            const t = document.getElementById('toast'); document.getElementById('toastMsg').innerText = msg;
+            document.getElementById('toastIcon').innerText = type==='success'?'✅':'❌';
+            t.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => t.classList.add('translate-y-20', 'opacity-0'), 3000);
+        }
+        function showLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            if(show) overlay.classList.remove('hidden'); else overlay.classList.add('hidden');
+        }
+        function loadTheme() {
+            if(localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+        }
+        function setupEventListeners() {
+            document.getElementById('bookForm').onsubmit = handleBookSubmit;
+            document.getElementById('noteForm').onsubmit = handleAddNote;
+            document.getElementById('searchInput').oninput = renderBooks;
+            document.getElementById('categoryFilter').onchange = renderBooks;
+            document.getElementById('themeToggleBtn').onclick = () => {
+                document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', document.documentElement.classList.contains('dark')?'dark':'light');
+            };
+            document.getElementById('aiFetchBtn').onclick = fetchBookDataAI;
+            document.getElementById('googleLoginBtn').onclick = () => signInWithPopup(auth, provider).catch(e => console.error(e));
+            document.getElementById('logoutBtn').onclick = () => signOut(auth);
+            document.getElementById('bookRating').oninput = (e) => document.getElementById('ratingDisplay').innerText = `${e.target.value} ★`;
+            document.getElementById('startTimerBtn').onclick = () => {
+                const start = Date.now();
+                document.getElementById('startTimerBtn').disabled = true; document.getElementById('stopTimerBtn').disabled = false;
+                readingSession.interval = setInterval(() => { document.getElementById('timerDisplay').innerText = new Date(Date.now() - start).toISOString().substr(11, 8); }, 1000);
+            };
+            document.getElementById('stopTimerBtn').onclick = () => {
+                clearInterval(readingSession.interval);
+                document.getElementById('startTimerBtn').disabled = false; document.getElementById('stopTimerBtn').disabled = true;
+            };
+        }
+    </script>
+</body>
+</html>
